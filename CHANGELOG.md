@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.1 — this fork (vibecoded)
+- Fixed: **the two British voices mumbled.** 1.4.0 fed them a hand-written letter set — eSpeak's own spelling (`oʊ`, `eə`, `ɜː`, `ɪr`) — and Paradee only ever saw misaki phonemes in training, so the words came out as mush. The British path is now the *same* eSpeak→misaki table as American plus the four differences upstream's `to_misaki(ps, british=True)` applies: SQUARE `eə`→`ɛː`, GOAT `əʊ`→`Q`, `iə`→`ɪə`, a standalone `the` →`ði`, and the length marks kept (so NURSE stays `ɜː` and never becomes `ɜɹ`). PRICE, MOUTH, the affricates and the flaps are shared with American (`I`, `W`, `ʤ`, `ʧ`, `T`), and the dark `ɫ` — mostly British output, and a symbol the vocabulary has no id for — folds to plain `l`
+- New: `tools/gen-gb-golden.mjs` maps 23 sentences of real eSpeak output through the phoneme table the pi‑voicekit fork ships, in both accents, fails if the two implementations disagree, and pins the agreed pairs to `test/fixtures/gb-misaki.json`. The unit tests assert this repo reproduces every pair and that every pinned phoneme has a vocabulary id — a letter the vocabulary lacks is dropped in silence, which is exactly how a wrong table hides
+- New: the offscreen document reports each run's accent, phoneme letters and dropped symbols to the service worker, which keeps the last 24. The Chrome test reads them: the British run must feed British letters (`Q`, and no `O`), the American run the reverse. Playwright cannot see the offscreen document, so the worker is the one place the browser's own build of eSpeak is observable — the build no unit test reaches
+- Changed: `phonemizer` is a declared dependency. The extension and the tests import it directly and it was only arriving through `kokoro-js`
+
 ## 1.4.0 — this fork (vibecoded)
 - New: the fast voice is **Paradee‑8M v1.2**, which carries four voices in the same ~8.5 MB file: `af_heart` (American female), `bf_isabella` (British female), `am_puck` (American male), `bm_fable` (British male). The speaker is a scalar int64 `voice` input on the graph, and the sid is the order the model's own `config.json` lists them
 - New: British phonemes. The `bf_`/`bm_` voices were trained on misaki's British dictionary, so `toMisaki` grew the British branch (`əʊ`→`Q`, `eə`→`ɛː`, `ɚ`→`ə`, kept length marks) and eSpeak is asked for `en-gb` for those two voices

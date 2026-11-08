@@ -29,7 +29,10 @@ self.onmessage = async (e) => {
     const out = await generate(m.text, { voice: m.voice || 'af_heart', speed: m.speed, threads: m.threads })
     if (cancelled !== myToken) { self.postMessage({ id: m.id, cancelled: true }); return }
     self.postMessage(
-      { id: m.id, samples: out.samples, sr: out.sr, speed: out.speed, windows: out.windows, weights: out.weights, phonemes: out.phonemes },
+      {
+        id: m.id, samples: out.samples, sr: out.sr, speed: out.speed, windows: out.windows, weights: out.weights,
+        phonemes: out.phonemes, letters: out.letters, dropped: out.dropped, lang: voiceLang(m.voice),
+      },
       [out.samples.buffer]
     )
   } catch (err) {

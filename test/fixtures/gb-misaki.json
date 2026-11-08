@@ -1,0 +1,143 @@
+{
+  "note": "eSpeak output and the misaki phonemes the Paradee model expects, pinned by tools/gen-gb-golden.mjs from the table the pi-voicekit fork ships and tests. Regenerate with: node tools/gen-gb-golden.mjs",
+  "pairs": [
+    {
+      "text": "The nurse bathed in the bath after dark and heard the milk.",
+      "lang": "en-gb",
+      "ipa": "ðə nˈɜːs bˈeɪðd ɪnðə bˈaθ ˈaftə dˈɑːk and hˈɜːd ðə mˈɪlk",
+      "misaki": "ðə nˈɜːs bˈAðd ɪnðə bˈaθ ˈaftə dˈɑːk and hˈɜːd ðə mˈɪlk"
+    },
+    {
+      "text": "My nurse is over the water, full of light and out of door.",
+      "lang": "en-gb",
+      "ipa": "maɪ nˈɜːs ɪz ˌəʊvə ðə wˈɔːtə fˈʊl ɒv lˈaɪt and ˌaʊtəv dˈɔː",
+      "misaki": "mI nˈɜːs ɪz ˌQvə ðə wˈɔːtə fˈʊl ɒv lˈIt and ˌWtəv dˈɔː"
+    },
+    {
+      "text": "Where are the fair chairs? The air is bare and the bear is there.",
+      "lang": "en-gb",
+      "ipa": "wˌeəɹ ɑː ðə fˈeə tʃˈeəz ðɪ ˈeəɹ ɪz bˈeə and ðə bˈeəɹ ɪz ðˈeə",
+      "misaki": "wˌɛːɹ ɑː ðə fˈɛː ʧˈɛːz ði ˈɛːɹ ɪz bˈɛː and ðə bˈɛːɹ ɪz ðˈɛː"
+    },
+    {
+      "text": "The boy chose the goitre and the pothole by the shore.",
+      "lang": "en-gb",
+      "ipa": "ðə bˈɔɪ tʃˈəʊz ðə ɡˈɔɪtə and ðə pˈɒthəʊl baɪ ðə ʃˈɔː",
+      "misaki": "ðə bˈY ʧˈQz ðə ɡˈYtə and ðə pˈɒthQl bI ðə ʃˈɔː"
+    },
+    {
+      "text": "The farmer's servant works in the nurses' nearer water.",
+      "lang": "en-gb",
+      "ipa": "ðə fˈɑːməz sˈɜːvənt wˈɜːks ɪnðə nˈɜːsɪz nˈiəɹə wˈɔːtə",
+      "misaki": "ðə fˈɑːməz sˈɜːvənt wˈɜːks ɪnðə nˈɜːsɪz nˈɪəɹə wˈɔːtə"
+    },
+    {
+      "text": "The battery is an idea of a reality: the media read it.",
+      "lang": "en-gb",
+      "ipa": "ðə bˈatəɹi ɪz ɐn aɪdˈiəɹ əvə ɹɪˈalɪti ðə mˈiːdiːə ɹˈiːd ɪt",
+      "misaki": "ðə bˈatəɹi ɪz ɐn Idˈɪəɹ əvə ɹɪˈalɪti ðə mˈiːdiːə ɹˈiːd ɪt"
+    },
+    {
+      "text": "The zebra measured the measure over and over.",
+      "lang": "en-gb",
+      "ipa": "ðə zˈɛbɹə mˈɛʒəd ðə mˈɛʒəɹ ˌəʊvə and ˈəʊvə",
+      "misaki": "ðə zˈɛbɹə mˈɛʒəd ðə mˈɛʒəɹ ˌQvə and ˈQvə"
+    },
+    {
+      "text": "He took a book and looked at the cook, the cookie and the coo.",
+      "lang": "en-gb",
+      "ipa": "hiː tˈʊk ɐ bˈʊk and lˈʊkt at ðə kˈʊk ðə kˈʊki and ðə kˈuː",
+      "misaki": "hiː tˈʊk ɐ bˈʊk and lˈʊkt at ðə kˈʊk ðə kˈʊki and ðə kˈuː"
+    },
+    {
+      "text": "The whale was which, and the white wheel went.",
+      "lang": "en-gb",
+      "ipa": "ðə wˈeɪl wɒz wˈɪtʃ and ðə wˈaɪt wˈiːl wˈɛnt",
+      "misaki": "ðə wˈAl wɒz wˈɪʧ and ðə wˈIt wˈiːl wˈɛnt"
+    },
+    {
+      "text": "An hour, an honour, an heir — the ankh and the antenna.",
+      "lang": "en-gb",
+      "ipa": "ɐn ˈaʊə ɐn ˈɒnə ɐn ˈeə ðɪ ˈaŋk and ðɪ antˈɛnə",
+      "misaki": "ɐn ˈWə ɐn ˈɒnə ɐn ˈɛː ði ˈaŋk and ði antˈɛnə"
+    },
+    {
+      "text": "Milk, folk, yolk, calm, psalm and alms.",
+      "lang": "en-gb",
+      "ipa": "mˈɪlk fˈəʊk jˈəʊk kˈɑːm sˈɑːm and ˈɑːmz",
+      "misaki": "mˈɪlk fˈQk jˈQk kˈɑːm sˈɑːm and ˈɑːmz"
+    },
+    {
+      "text": "The theatre is the area, the era and the seer.",
+      "lang": "en-gb",
+      "ipa": "ðə θˈiətəɹ ɪz ðɪ ˈeəɹiə ðɪ ˈiəɹə and ðə sˈiːə",
+      "misaki": "ðə θˈɪətəɹ ɪz ði ˈɛːɹɪə ði ˈɪəɹə and ðə sˈiːə"
+    },
+    {
+      "text": "You knew the news and the nurse is new at music.",
+      "lang": "en-gb",
+      "ipa": "juː njˈuː ðə njˈuːz and ðə nˈɜːs ɪz njˈuː at mjˈuːzɪk",
+      "misaki": "juː njˈuː ðə njˈuːz and ðə nˈɜːs ɪz njˈuː at mjˈuːzɪk"
+    },
+    {
+      "text": "Wage, gather, laugh and laugh, and staff.",
+      "lang": "en-gb",
+      "ipa": "wˈeɪdʒ ɡˈaðə lˈaf and lˈaf and stˈaf",
+      "misaki": "wˈAʤ ɡˈaðə lˈaf and lˈaf and stˈaf"
+    },
+    {
+      "text": "The 1987 report, 3.5 miles and 22 people, says: “No.”",
+      "lang": "en-gb",
+      "ipa": "ðə nˈaɪntiːnhˈʌndɹɪdən ˈeɪti sˈɛvən ɹɪpˈɔːt θɹˈiː pɔɪnt fˈaɪv mˈaɪlz and twˈɛnti tˈuː pˈiːpəl sˈɛz nˈəʊ",
+      "misaki": "ðə nˈIntiːnhˈʌndɹɪdən ˈAti sˈɛvən ɹɪpˈɔːt θɹˈiː pYnt fˈIv mˈIlz and twˈɛnti tˈuː pˈiːpᵊl sˈɛz nˈQ"
+    },
+    {
+      "text": "A poor sure tour: the door floor bore your four scores.",
+      "lang": "en-gb",
+      "ipa": "ɐ pˈʊə ʃˈʊə tˈʊə ðə dˈɔː flˈɔː bˈɔː jɔː fˈɔː skˈɔːz",
+      "misaki": "ɐ pˈʊə ʃˈʊə tˈʊə ðə dˈɔː flˈɔː bˈɔː jɔː fˈɔː skˈɔːz"
+    },
+    {
+      "text": "Is this the hour, the era — the end? Yes; no… (maybe “quite”)",
+      "lang": "en-gb",
+      "ipa": "ɪz ðɪs ðɪ ˈaʊə ðɪ ˈiəɹə ðɪ ˈɛnd jˈɛs nˈəʊ mˈeɪbiː kwˈaɪt",
+      "misaki": "ɪz ðɪs ði ˈWə ði ˈɪəɹə ði ˈɛnd jˈɛs nˈQ mˈAbiː kwˈIt"
+    },
+    {
+      "text": "My nurse is over the water, full of light and out of door.",
+      "lang": "en-us",
+      "ipa": "maɪ nˈɜːs ɪz ˌoʊvɚ ðə wˈɔːɾɚ fˈʊl ʌv lˈaɪt ænd ˌaʊɾəv dˈoːɹ",
+      "misaki": "mI nˈɜɹs ɪz ˌOvəɹ ðə wˈɔTəɹ fˈʊl ʌv lˈIt ænd ˌWTəv dˈɔɹ"
+    },
+    {
+      "text": "The boy chose the goiter and the pothole by the shore.",
+      "lang": "en-us",
+      "ipa": "ðə bˈɔɪ tʃˈoʊz ðə ɡˈɔɪɾɚ ænd ðə pˈɑːthoʊl baɪ ðə ʃˈoːɹ",
+      "misaki": "ðə bˈY ʧˈOz ðə ɡˈYTəɹ ænd ðə pˈɑthOl bI ðə ʃˈɔɹ"
+    },
+    {
+      "text": "He took a book and looked at the cook, the cookie and the coo.",
+      "lang": "en-us",
+      "ipa": "hiː tˈʊk ɐ bˈʊk ænd lˈʊkt æt ðə kˈʊk ðə kˈʊki ænd ðə kˈuː",
+      "misaki": "hi tˈʊk ɐ bˈʊk ænd lˈʊkt æt ðə kˈʊk ðə kˈʊki ænd ðə kˈu"
+    },
+    {
+      "text": "The 1987 report, 3.5 miles and 22 people, says: “No.”",
+      "lang": "en-us",
+      "ipa": "ðə nˈaɪntiːnhˈʌndɹɪd ˈeɪɾi sˈɛvən ɹᵻpˈoːɹt θɹˈiː pɔɪnt fˈaɪv mˈaɪlz ænd twˈɛnti tˈuː pˈiːpəl sˈɛz nˈoʊ",
+      "misaki": "ðə nˈIntinhˈʌndɹɪd ˈATi sˈɛvən ɹᵻpˈɔɹt θɹˈi pYnt fˈIv mˈIlz ænd twˈɛnti tˈu pˈipᵊl sˈɛz nˈO"
+    },
+    {
+      "text": "You knew the news and the nurse is new at music.",
+      "lang": "en-us",
+      "ipa": "juː nˈuː ðə nˈuːz ænd ðə nˈɜːs ɪz nˈuː æt mjˈuːzɪk",
+      "misaki": "ju nˈu ðə nˈuz ænd ðə nˈɜɹs ɪz nˈu æt mjˈuzɪk"
+    },
+    {
+      "text": "Is this the hour, the era — the end? Yes; no… (maybe “quite”)",
+      "lang": "en-us",
+      "ipa": "ɪz ðɪs ðɪ ˈaʊɚ ðɪ ˈiəɹə ðɪ ˈɛnd jˈɛs nˈoʊ mˈeɪbiː kwˈaɪt",
+      "misaki": "ɪz ðɪs ðɪ ˈWəɹ ðɪ ˈiəɹə ðɪ ˈɛnd jˈɛs nˈO mˈAbi kwˈIt"
+    }
+  ]
+}

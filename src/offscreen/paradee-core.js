@@ -230,6 +230,9 @@ export async function generate(text, { voice = 'af_heart', speed = 1, threads = 
     sr: CONFIG.sample_rate,
     speed: s,
     phonemes: plan.phonemes,
+    // The phoneme text the ids came from, for diagnostics: a British voice that
+    // mumbles is a letter-set bug, and this is the only place that can see the letters.
+    letters: plan.letters,
     dropped: plan.dropped,
     windows: runs.map((r) => ({ charStart: r.charStart, charEnd: r.charEnd, samples: r.wave.length })),
     weights,

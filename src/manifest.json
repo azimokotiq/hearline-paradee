@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Hearline — Listen to any webpage",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Hearline reads any webpage, article or blog out loud with real-time word highlighting. Free, private, no account.",
   "minimum_chrome_version": "120",
   "permissions": [

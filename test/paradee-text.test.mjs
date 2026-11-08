@@ -22,24 +22,46 @@ test('toMisaki rewrites eSpeak spelling into the one Paradee was trained on', ()
   assert.equal(toMisaki('nˈeɪvəl ˈɒfɪsɚ'), 'nˈAvᵊl ˈɒfɪsəɹ', 'syllabic l; upstream leaves ɒ alone')
   assert.equal(toMisaki(''), '', 'empty in, empty out')
 })
-test('toMisaki(british) spells the en-GB vowels the way upstream to_misaki does', () => {
-  // The letters eSpeak's en-gb really produces (measured with the bundled wasm) and the
-  // misaki letters the bf_/bm_ voices were trained on. Where a stressed syllable starts
-  // with a sequence (`ɜː`, `aɪ`, `ɔː`) upstream consumes the stress mark with it — faithful
-  // to to_misaki, and what the model has seen.
-  assert.equal(toMisaki(['bˈaθ'], true), 'b ˈ a θ', 'BATH stays an open a')
-  assert.equal(toMisaki(['nˈɜːs'], true), 'n ɜː s', 'NURSE keeps ɜː, no length-mark stripping')
-  assert.equal(toMisaki(['wˈɔːtə'], true), 'w ɔ t ə', 'the long OPEN_O of water falls back to open o')
-  assert.equal(toMisaki(['mˈɪɫk'], true), 'm ˈ i l k', 'dark l folds to l, KIT to i')
-  assert.equal(toMisaki(['fˈʊl'], true), 'f ˈ ʊ l', 'FOOT stays ʊ')
-  assert.equal(toMisaki(['ɒv'], true), 'ɒ v', 'LOT keeps ɒ')
-  assert.equal(toMisaki(['lˈaɪt'], true), 'l aɪ t', 'PRICE is aɪ, not the American I')
-  assert.equal(toMisaki(['ˌaʊtəv'], true), 'ˌ aʊ t ə v', 'MOUTH is aʊ, not W')
-  assert.equal(toMisaki(['ɡˌəʊɪŋ'], true), 'ɡ ˌ ə ʊ i ŋ', 'GOAT is the two letters eSpeak spells it with')
+test('toMisaki(british) spells the en-GB vowels with the letters the model was trained on', () => {
+  // British shares the American table for PRICE (`I`), MOUTH (`W`), the affricates and the
+  // flaps, and differs in four places: GOAT is `Q`, SQUARE is `ɛː`, the length marks survive
+  // (so NURSE stays `ɜː` and never becomes `ɜɹ`), `iə` goes to `ɪə` rather than the reverse,
+  // and "the" before a vowel is `ði`. Feeding eSpeak's own letters instead is what made the
+  // bf_/bm_ voices mumble.
+  assert.equal(toMisaki(['nˈɜːs'], true), 'nˈɜːs', 'NURSE keeps ɜː: no length-mark strip, no added ɹ')
+  assert.equal(toMisaki(['ɡˌəʊɪŋ'], true), 'ɡˌQɪŋ', 'GOAT is Q; KIT keeps i, ɪə stays ɪə')
+  assert.equal(toMisaki(['wˈeə'], true), 'wˈɛː', 'SQUARE is ɛː, before the shared e→A rule')
+  assert.equal(toMisaki(['iə'], true), 'ɪə', 'the near-close centre is ɪə in British, iə in American')
+  assert.equal(toMisaki(['lˈaɪt'], true), 'lˈIt', 'PRICE is I in both accents — the table is shared')
+  assert.equal(toMisaki(['mˈɪɫk'], true), 'mˈɪlk', 'dark l folds to the l the vocabulary has')
+  assert.equal(toMisaki(['ðɪ ˈæpəl'], true), 'ði ˈæpᵊl', '"the" before a vowel takes the long i; word-final əl is syllabic')
+  assert.equal(toMisaki(['ðɪs'], true), 'ðɪs', '"this" keeps the short one: only a standalone the changes')
+  assert.equal(toMisaki(['ɐn'], true), 'ɐn', '"an" keeps ɐ, which is what the British lexicon stores')
   // The same IPA through the American chain spells those vowels with different letters —
   // the reason the accent has to reach toMisaki, not just the phonemizer.
   assert.equal(toMisaki(['lˈaɪt'], false), 'lˈIt', 'American: PRICE is I')
-  assert.equal(toMisaki(['nˈɜːs'], false), 'nˈɜɹs', 'American: NURSE gains an ɹ')
+  assert.equal(toMisaki(['nˈɜːs'], false), 'nˈɜɹs', 'American: NURSE gains an ɹ and loses the mark')
+  assert.equal(toMisaki(['ɡˌoʊɪŋ'], false), 'ɡˌOɪŋ', 'American: GOAT is O')
+})
+
+test('the phoneme pairs pinned from the pi-voicekit table agree with this table', () => {
+  // tools/gen-gb-golden.mjs writes these from real eSpeak output, mapped through the table
+  // the pi-voicekit fork ships and tests. Two products, one model: the phoneme ids must match.
+  const golden = JSON.parse(readFileSync(new URL('./fixtures/gb-misaki.json', import.meta.url), 'utf8'))
+  assert.ok(golden.pairs.length >= 20, `the fixture covers both accents, got ${golden.pairs.length}`)
+  assert.ok(golden.pairs.some((p) => p.lang === 'en-gb') && golden.pairs.some((p) => p.lang === 'en-us'))
+  for (const p of golden.pairs) {
+    assert.equal(toMisaki(p.ipa, p.lang === 'en-gb'), p.misaki, `${p.lang}: ${p.text}`)
+  }
+})
+
+test('every pinned phoneme has a vocabulary id, so nothing is silently dropped', () => {
+  const golden = JSON.parse(readFileSync(new URL('./fixtures/gb-misaki.json', import.meta.url), 'utf8'))
+  for (const p of golden.pairs) {
+    const { ids, dropped } = phonemesToIds(p.misaki, CFG.vocab)
+    assert.deepEqual(dropped, [], `${p.lang} ${p.text}: ${p.misaki}`)
+    assert.ok(ids.length >= 3 && ids[0] === 0 && ids[ids.length - 1] === 0, 'padded at both ends')
+  }
 })
 
 test('g2pLang picks the accent a Paradee voice speaks', () => {

@@ -43,7 +43,19 @@ function getWorker(backend, lang) {
     h.pending.delete(m.id)
     if (m.error) p.reject(new Error(m.error))
     else if (m.cancelled) p.resolve(null)
-    else p.resolve(m)
+    else {
+      // Last run's phoneme letters, for the test suite and for support: the letters are what
+      // decide whether a British voice speaks British, and only here can the accent the worker
+      // was built for and the letters the model was fed be seen together.
+      if (m.samples) {
+        // Fire and forget: a lost message costs a diagnostic, never a sentence.
+        chrome.runtime.sendMessage({
+          type: 'run-stats',
+          stats: { backend, lang: h.lang, letters: m.letters, dropped: m.dropped || [], phonemes: m.phonemes, at: Date.now() },
+        }).catch(() => {})
+      }
+      p.resolve(m)
+    }
   }
   w.onerror = (e) => {
     const err = new Error(e.message || 'worker-failed')

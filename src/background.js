@@ -88,6 +88,16 @@ async function ensureOffscreen() {
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || !msg.type) return false
+  if (msg.type === 'run-stats') {
+    // What the model was last fed: accent, phoneme letters, anything the vocabulary had no id
+    // for. Off the playback path; the browser test suite and support read it here because a
+    // service worker is the one context a test can reach in every engine of the extension.
+    const list = (self.__hlRunStats = self.__hlRunStats || [])
+    list.push(msg.stats)
+    if (list.length > 24) list.shift()
+    sendResponse({ ok: true, kept: list.length })
+    return false
+  }
   if (msg.type === 'ensure-offscreen') {
     ensureOffscreen().then(() => sendResponse({ ok: true }), (e) => sendResponse({ ok: false, error: String(e) }))
     return true

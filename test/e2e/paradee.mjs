@@ -23,11 +23,16 @@ try {
   const sw = await e2e.workerOf(ctx)
   const id = e2e.extIdOf(ctx)
   const errors = []
-  ctx.on('page', (p) => {
+  let offscreen = null // the offscreen document records the phonemes of the last run
+  const watchOffscreen = (p) => {
     if (!p.url().includes('offscreen')) return
+    offscreen = p
     p.on('console', (m) => { if (m.type() === 'error') errors.push('offscreen console: ' + m.text().slice(0, 300)) })
     p.on('pageerror', (e) => errors.push('offscreen: ' + String(e).slice(0, 300)))
-  })
+  }
+  ctx.on('page', watchOffscreen)
+  // The document is opened when the extension starts, so it is already there to be found.
+  for (const p of ctx.pages()) watchOffscreen(p)
 
   // ---- install from the options page -------------------------------------
   const opt = await ctx.newPage()
@@ -142,6 +147,39 @@ try {
   }
   check('keeps reading after switching accent (worker rebuilt)', movedAccent,
     `count ${before} -> ${await page.locator('#hearline-root >> .count').textContent()}`)
+
+  // The letters are the accent. The browser's build of eSpeak is the one the unit tests cannot
+  // reach, and the offscreen document records the phonemes the model was fed, so this is the
+  // check that a British voice really speaks British: GOAT as `Q`, SQUARE and NURSE with their
+  // length marks, and none of the American-only letters (`O` for GOAT, `ɜɹ` for NURSE).
+  const runs = ((await sw.evaluate(() => (self.__hlRunStats || []).map((r) => ({ lang: r.lang, letters: r.letters, dropped: r.dropped }))).catch(() => [])) || [])
+    .filter((r) => r && r.letters)
+  const byLang = (lang) => (runs || []).filter((r) => r.lang === lang)
+  const join = (rs) => rs.map((r) => r.letters).join(' ')
+  const gbRuns = byLang('en-gb')
+  check('the British voice feeds the model British letters',
+    gbRuns.length > 0 && /Q|ɛː|ɜː|ɑː/.test(join(gbRuns)) && !join(gbRuns).includes('O')
+      && !gbRuns.some((r) => (r.dropped || []).length),
+    gbRuns.length ? `${gbRuns.length} runs, dropped=${JSON.stringify([...new Set(gbRuns.flatMap((r) => r.dropped || []))])} ${join(gbRuns).slice(0, 140)}`
+      : `no British run (${runs.length} runs: ${runs.map((r) => r.lang).join(',') || 'none recorded'})`)
+
+  // Back to American at a tempo never spoken, so the audio cache cannot answer and a real run
+  // happens: the letters must flip to the American set (GOAT `O`, no British `Q`).
+  await page.locator('#hearline-root >> [data-a="voice"]').click()
+  await page.getByText('Heart', { exact: false }).click()
+  await page.locator('#hearline-root >> [data-a="speed"]').click()
+  await page.locator('#hearline-root >> .presets button[data-v="1.5"]').click()
+  const before2 = parseInt(await page.locator('#hearline-root >> .count').textContent())
+  let moved2 = false
+  for (let i = 0; i < 25 && !moved2; i++) {
+    await page.waitForTimeout(1000)
+    moved2 = parseInt(await page.locator('#hearline-root >> .count').textContent()) > before2
+  }
+  const usRuns = byLang('en-us')
+  check('the American voice feeds the model American letters',
+    moved2 && usRuns.length > 0 && (join(usRuns).includes('O') || join(usRuns).includes('ɜɹ')) && !join(usRuns).includes('Q')
+      && !usRuns.some((r) => (r.dropped || []).length),
+    `${moved2 ? 'reading' : 'stalled'}, ${usRuns.length} runs, dropped=${JSON.stringify([...new Set(usRuns.flatMap((r) => r.dropped || []))])} ${join(usRuns).slice(0, 140)}`)
 
   // Export the page as a wav (the menu item only exists when an HQ voice is in play). The
   // offscreen document starts the download, which playwright does not report as an event,
