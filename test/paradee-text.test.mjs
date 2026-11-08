@@ -7,7 +7,7 @@ import { phonemize } from 'phonemizer'
 
 import {
   MAX_PHONEMES, PROSODY, toMisaki, splitProsody, phonemesToIds, cutPhonemes,
-  planWindows, words, wordWeights, makeTimingMap,
+  planWindows, words, wordWeights, makeTimingMap, g2pLang,
 } from '../src/shared/paradee-text.js'
 
 const CFG = JSON.parse(readFileSync(new URL('../src/shared/paradee-config.json', import.meta.url), 'utf8'))
@@ -21,6 +21,34 @@ test('toMisaki rewrites eSpeak spelling into the one Paradee was trained on', ()
   assert.ok(!toMisaki('ɪt kˈɔst').includes('ː'), 'length marks are dropped')
   assert.equal(toMisaki('nˈeɪvəl ˈɒfɪsɚ'), 'nˈAvᵊl ˈɒfɪsəɹ', 'syllabic l; upstream leaves ɒ alone')
   assert.equal(toMisaki(''), '', 'empty in, empty out')
+})
+test('toMisaki(british) spells the en-GB vowels the way upstream to_misaki does', () => {
+  // The letters eSpeak's en-gb really produces (measured with the bundled wasm) and the
+  // misaki letters the bf_/bm_ voices were trained on. Where a stressed syllable starts
+  // with a sequence (`ɜː`, `aɪ`, `ɔː`) upstream consumes the stress mark with it — faithful
+  // to to_misaki, and what the model has seen.
+  assert.equal(toMisaki(['bˈaθ'], true), 'b ˈ a θ', 'BATH stays an open a')
+  assert.equal(toMisaki(['nˈɜːs'], true), 'n ɜː s', 'NURSE keeps ɜː, no length-mark stripping')
+  assert.equal(toMisaki(['wˈɔːtə'], true), 'w ɔ t ə', 'the long OPEN_O of water falls back to open o')
+  assert.equal(toMisaki(['mˈɪɫk'], true), 'm ˈ i l k', 'dark l folds to l, KIT to i')
+  assert.equal(toMisaki(['fˈʊl'], true), 'f ˈ ʊ l', 'FOOT stays ʊ')
+  assert.equal(toMisaki(['ɒv'], true), 'ɒ v', 'LOT keeps ɒ')
+  assert.equal(toMisaki(['lˈaɪt'], true), 'l aɪ t', 'PRICE is aɪ, not the American I')
+  assert.equal(toMisaki(['ˌaʊtəv'], true), 'ˌ aʊ t ə v', 'MOUTH is aʊ, not W')
+  assert.equal(toMisaki(['ɡˌəʊɪŋ'], true), 'ɡ ˌ ə ʊ i ŋ', 'GOAT is the two letters eSpeak spells it with')
+  // The same IPA through the American chain spells those vowels with different letters —
+  // the reason the accent has to reach toMisaki, not just the phonemizer.
+  assert.equal(toMisaki(['lˈaɪt'], false), 'lˈIt', 'American: PRICE is I')
+  assert.equal(toMisaki(['nˈɜːs'], false), 'nˈɜɹs', 'American: NURSE gains an ɹ')
+})
+
+test('g2pLang picks the accent a Paradee voice speaks', () => {
+  assert.equal(g2pLang('af_heart'), 'en-us')
+  assert.equal(g2pLang('am_puck'), 'en-us')
+  assert.equal(g2pLang('bf_isabella'), 'en-gb')
+  assert.equal(g2pLang('bm_fable'), 'en-gb')
+  assert.equal(g2pLang('af_sky'), 'en-us', 'the convention covers every Kokoro prefix')
+  assert.equal(g2pLang(''), null, 'an unknown prefix says so instead of guessing')
 })
 
 test('toMisaki accepts the array phonemize() returns and joins its lines', () => {
@@ -169,4 +197,29 @@ test('makeTimingMap respects per-window audio lengths and falls back to linear',
   const linear = makeTimingMap([{ charStart: 0, charEnd: 100, samples: 500 }], [])
   assert.equal(linear(0.5), 50, 'no weights means linear')
   assert.equal(makeTimingMap([], []) (0.3), 0, 'no audio at all is not a crash')
+})
+
+test('the British letter set is fully in the shipped vocabulary', async () => {
+  // Real G2P (the bundled eSpeak wasm) over the vocab that ships in paradee-config.json,
+  // on text that leans on the vowels only en-GB produces: LOT ɒ, NURSE ɜː, GOAT əʊ,
+  // PRICE aɪ, FOOT ʊ, the dark l. A letter with no id shows up in `dropped`.
+  const samples = [
+    'Bath and the nurse heard milk, full of light and out of order.',
+    'I believe George is going home to Scotland.',
+    'Both water and world sound warm in September.',
+  ]
+  for (const text of samples) {
+    const { windows, dropped } = await planWindows(text, CFG.vocab, phonemize, 'en-gb')
+    assert.deepEqual(dropped, [], `nothing dropped for: ${text}`)
+    assert.ok(windows.length >= 1 && windows[0].ids.length > 2, `ids planned for: ${text}`)
+  }
+})
+
+test('wordWeights asks for the words in the voice accent', async () => {
+  const seen = []
+  const spy = async (t, lang) => { seen.push(lang); return await phonemize(t, lang) }
+  const list = words('the nurse bathed')
+  const w = await wordWeights(list, spy, 'en-gb', 'the nurse bathed')
+  assert.deepEqual(seen, ['en-gb', 'en-gb', 'en-gb'], 'the G2P was asked for en-gb, not the default')
+  assert.ok(w.every((x) => x.phonemes > 0), JSON.stringify(w))
 })

@@ -2,7 +2,7 @@
 // main thread, so playback and progress reporting keep running while a sentence is made.
 // It is a separate worker from the Kokoro one on purpose: neither engine pays to load the
 // other's runtime.
-import { generate, benchmark, loadModel, usableThreads } from './paradee-core.js'
+import { generate, benchmark, loadModel, usableThreads, voiceLang } from './paradee-core.js'
 
 let cancelled = 0
 
@@ -20,11 +20,13 @@ self.onmessage = async (e) => {
     const myToken = cancelled
     if (m.warm) {
       await loadModel({ threads: m.threads })
-      await generate('Yes.', { speed: 1, threads: m.threads })
-      self.postMessage({ id: m.id, warm: true, threads: usableThreads(m.threads) })
+      // Warm in the accent the caller intends to speak: the phonemizer keeps the language
+      // it was built with, so warming American and then asking for British is a reload.
+      await generate('Yes.', { voice: m.voice || 'af_heart', speed: 1, threads: m.threads })
+      self.postMessage({ id: m.id, warm: true, threads: usableThreads(m.threads), lang: voiceLang(m.voice || 'af_heart') })
       return
     }
-    const out = await generate(m.text, { speed: m.speed, threads: m.threads })
+    const out = await generate(m.text, { voice: m.voice || 'af_heart', speed: m.speed, threads: m.threads })
     if (cancelled !== myToken) { self.postMessage({ id: m.id, cancelled: true }); return }
     self.postMessage(
       { id: m.id, samples: out.samples, sr: out.sr, speed: out.speed, windows: out.windows, weights: out.weights, phonemes: out.phonemes },

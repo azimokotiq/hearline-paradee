@@ -180,14 +180,15 @@
         b.addEventListener('click', () => { closePop(); handlers.action('installVoices') })
         pop.appendChild(b)
       }
-      // Fast voice first: one choice, small download, and it keeps up on ordinary hardware.
+      // Fast voice first: small download, four voices, and it keeps up on ordinary hardware.
       if (m.paradeeSupported) {
-        if (!m.paradeeInstalled) cta('Get the fast HQ voice (one-time 9 MB, works offline)')
+        if (!m.paradeeInstalled) cta('Get the fast HQ voices (one-time 8.5 MB, works offline)')
         else {
           pop.appendChild(h('h4', {}, 'Hearline HQ \u00b7 fast (offline)'))
           if (m.paradeeSlow) pop.appendChild(h('div', { class: 'note' }, 'Heads-up: the speed test found this voice slower than real time on this computer, so expect pauses.'))
           for (const v of m.paradee) {
-            pop.appendChild(row(`${v.name} (fast)`, '', m.current.engine === 'paradee' && m.current.id === v.id, () => handlers.action('pickVoice', { engine: 'paradee', id: v.id })))
+            const accent = v.lang === 'en-GB' ? 'UK' : 'US'
+            pop.appendChild(row(`${v.name} (fast, ${accent}, ${v.gender === 'F' ? 'female' : 'male'})`, '', m.current.engine === 'paradee' && m.current.id === v.id, () => handlers.action('pickVoice', { engine: 'paradee', id: v.id })))
           }
         }
       }

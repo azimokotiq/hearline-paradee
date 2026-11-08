@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.0 — this fork (vibecoded)
+- New: the fast voice is **Paradee‑8M v1.2**, which carries four voices in the same ~8.5 MB file: `af_heart` (American female), `bf_isabella` (British female), `am_puck` (American male), `bm_fable` (British male). The speaker is a scalar int64 `voice` input on the graph, and the sid is the order the model's own `config.json` lists them
+- New: British phonemes. The `bf_`/`bm_` voices were trained on misaki's British dictionary, so `toMisaki` grew the British branch (`əʊ`→`Q`, `eə`→`ɛː`, `ɚ`→`ə`, kept length marks) and eSpeak is asked for `en-gb` for those two voices
+- New: the voice pill and the pickers say which accent a Paradee voice speaks — `Isabella (fast, UK)`, `Puck (fast, US)`
+- New: the e2e test installs the real 1.2 model in Chrome, picks the British voice mid‑sentence and checks the reading continues after the phonemizer is rebuilt in the new accent
+- Changed: model URL, pinned revision, sha256 and byte count now point at `Paradee-8M-v1.2` (8,462,119 bytes at `ed2934d4`). An existing 1.0 install is replaced on the next install; the 1.0 graph has no `voice` input, so the code asks the session which inputs it has rather than assuming a version
+- Changed: one Paradee worker speaks one accent, because eSpeak fixes its language when it is built. Asking for the other one rebuilds the worker (a model reload, about a second); every voice keeps its own audio cache entries
+- Kept: `af_heart` is still the default for every accent — it is the voice the speed test measured, and the default never forces a phonemizer rebuild
+
 ## 1.3.0 — this fork (vibecoded)
 
 Written by an AI coding agent under human direction — see the note at the top of the README. Everything from 1.2.0 down is upstream.

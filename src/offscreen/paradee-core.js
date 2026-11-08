@@ -1,6 +1,8 @@
-// Paradee-8M: the fast HQ voice. One voice (Kokoro's `af_heart` distilled into 8.07M
-// parameters), one 9 MB int8 ONNX file, CPU only. Measured here: 0.34x real time on a
-// single WASM thread, 0.22x with four — Kokoro-82M (92 MB int8) sits near or above 1.0x.
+// Paradee-8M: the fast HQ voice. Kokoro's voices distilled into 8.07M parameters, one
+// 8.5 MB int8 ONNX file, CPU only — and in v1.2 that file carries four voices: af_heart and
+// am_puck in American English, bf_isabella and bm_fable in British, chosen by a scalar int64
+// `voice` input. Measured here: 0.34x real time on a single WASM thread, 0.22x with four —
+// Kokoro-82M (92 MB int8) sits near or above 1.0x.
 //
 // The model is downloaded once, from a commit-pinned Hugging Face URL, checksum-verified,
 // and kept in Cache Storage. Nothing else about it needs the network: page text is
@@ -9,31 +11,49 @@
 // The graph takes misaki phoneme ids, not text (see src/shared/paradee-text.js for why),
 // so this file owns three things: the download/cache, the ORT session, and the text->audio
 // run that returns the audio *plus* the character map playback needs for highlighting.
+// A voice also decides the G2P language: the British voices need British phonemes, and
+// eSpeak pins its language when it is built, so a caller must not mix accents in one worker.
 
 import * as ort from 'onnxruntime-web/wasm'
 import { phonemize } from 'phonemizer'
 
 import { download } from './paradee-download.js'
 import { trimEdges } from '../shared/pcm.js'
-import { planWindows, words, wordWeights, speedFor } from '../shared/paradee-text.js'
+import { planWindows, words, wordWeights, speedFor, g2pLang } from '../shared/paradee-text.js'
 import CONFIG from '../shared/paradee-config.json'
 
-export const PARADEE_ID = 'paradee-8m-v1.0'
+export const PARADEE_ID = 'paradee-8m-v1.2'
 
 // Pinned to a commit, not to "main": the checksum below is only meaningful for one
 // revision, and an unpinned URL would otherwise fail silently when upstream commits.
-const REPO = 'sahilmahendrakar/Paradee-8M-v1.0'
-const REVISION = 'c7f83f86c04e84d0ae94cbe1aad7618e0544f80a'
+const REPO = 'sahilmahendrakar/Paradee-8M-v1.2'
+const REVISION = 'ed2934d4df8a4fd891e29584c5e1104649409765'
 const MODEL_FILE = 'onnx/paradee_int8.onnx'
-const MODEL_SHA256 = '60e8f8a1bc7c546488154e9d99ecac6e9c50baf3f4b684c5b0de48ea03b698eb'
-const MODEL_BYTES = 9037971
+const MODEL_SHA256 = 'a6989796692ac173597e15d405c971989202d5c73cfad65f22e90bd7b6c97da1'
+const MODEL_BYTES = 8462119
 
 export const MODEL_URL = `https://huggingface.co/${REPO}/resolve/${REVISION}/${MODEL_FILE}`
 export const MODEL_BYTES_MIN = 1e6
 export const CACHE_NAME = 'hearline-hq-paradee'
 
-/** eSpeak tag for G2P only; Paradee is American English, whatever the page language is. */
+/** The accent used when no voice says better: American, like Paradee 1.0. */
 export const G2P_LANG = 'en-us'
+
+/**
+ * The speaker the model's `voice` input selects: the order the voices are listed in the
+ * model's own config.json (af_heart, bf_isabella, am_puck, bm_fable), with the Kokoro
+ * prefix convention (a=American, b=British) as the fallback for a name that list lacks.
+ */
+export function voiceSid(voice) {
+  const order = (CONFIG.voices && CONFIG.voices.length && CONFIG.voices) || ['af_heart', 'bf_isabella', 'am_puck', 'bm_fable']
+  const at = order.indexOf(voice)
+  if (at >= 0) return at
+  const id = String(voice || '')
+  return id.startsWith('bf_') ? 1 : id.startsWith('am_') ? 2 : id.startsWith('bm_') ? 3 : 0
+}
+
+/** The G2P language a voice's phonemes have to be made in. */
+export const voiceLang = (voice) => g2pLang(voice) || G2P_LANG
 
 /** Threads / speed policy lives with the pure text code so it can be unit-tested. */
 export { SPEED_MIN, SPEED_MAX, speedFor } from '../shared/paradee-text.js'
@@ -163,13 +183,18 @@ export async function loadModel({ threads = 1 } = {}) {
  * playbackRate keeps the voice natural, and it changes the audio, so the caller must
  * keep it in its cache key.
  */
-export async function generate(text, { speed = 1, threads = 1, signal } = {}) {
+export async function generate(text, { voice = 'af_heart', speed = 1, threads = 1, signal } = {}) {
   await loadModel({ threads })
   const started = performance.now()
-  const plan = await planWindows(text, CONFIG.vocab, phonemize, G2P_LANG)
+  const lang = voiceLang(voice)   // the bf_/bm_ voices are spoken with British phonemes
+  const plan = await planWindows(text, CONFIG.vocab, phonemize, lang)
   if (!plan.windows.length) throw new Error('nothing to say')
 
   const s = speedFor(speed)
+  // Paradee 1.2 selects the speaker with a scalar int64 input; the 1.0 graph baked af_heart
+  // into the weights and has no such input, so ask the session rather than assume a version.
+  const sid = voiceSid(voice)
+  const hasVoice = !!(session.inputNames && session.inputNames.includes('voice'))
   const runs = []
   for (const w of plan.windows) {
     if (signal && signal.aborted) throw Object.assign(new Error('cancelled'), { name: 'AbortError' })
@@ -177,6 +202,7 @@ export async function generate(text, { speed = 1, threads = 1, signal } = {}) {
       input_ids: new ort.Tensor('int64', BigInt64Array.from(w.ids.map((n) => BigInt(n))), [1, w.ids.length]),
       speed: new ort.Tensor('float32', new Float32Array([s]), [1]),
     }
+    if (hasVoice) feeds.voice = new ort.Tensor('int64', BigInt64Array.from([BigInt(sid)]), [1])
     const outs = await session.run(feeds)
     const out = outs[session.outputNames && session.outputNames[0] ? session.outputNames[0] : 'waveform']
     if (!out || !out.data) throw new Error('the model returned no audio')
@@ -195,11 +221,12 @@ export async function generate(text, { speed = 1, threads = 1, signal } = {}) {
   for (const r of runs) { samples.set(r.wave, at); at += r.wave.length }
 
   const list = words(text)
-  const weights = list.length <= 120 ? await wordWeights(list, phonemize, G2P_LANG, text) : []
+  const weights = list.length <= 120 ? await wordWeights(list, phonemize, lang, text) : []
   lastRun = { ms: performance.now() - started, audio: total / CONFIG.sample_rate }
 
   return {
     samples,
+    voice,
     sr: CONFIG.sample_rate,
     speed: s,
     phonemes: plan.phonemes,
@@ -216,7 +243,7 @@ export const lastRtf = () => (lastRun && lastRun.audio > 0 ? lastRun.ms / 1000 /
 export async function benchmark({ threads = 1 } = {}) {
   const text = 'The quick brown fox jumps over the lazy dog, and then it takes a short rest.'
   const t0 = performance.now()
-  const out = await generate(text, { speed: 1, threads })
+  const out = await generate(text, { voice: 'af_heart', speed: 1, threads })
   const seconds = (performance.now() - t0) / 1000
   const audio = out.samples.length / out.sr
   return { seconds: +seconds.toFixed(3), audio: +audio.toFixed(3), rtf: +(seconds / audio).toFixed(3) }

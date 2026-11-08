@@ -1,7 +1,9 @@
 // Pure text side of the Paradee-8M runtime (https://github.com/sahilmahendrakar/paradee).
 //
-// Paradee is Kokoro's `af_heart` voice distilled into 8.07M parameters: one 9 MB int8
-// ONNX file, one voice, 24 kHz out. Its graph is tiny but picky about its input:
+// Paradee is Kokoro's voices distilled into 8.07M parameters: one 8.5 MB int8 ONNX file,
+// 24 kHz out, and since v1.2 four speakers in it — af_heart and am_puck (American),
+// bf_isabella and bm_fable (British) — chosen by a scalar `voice` input. The graph is tiny
+// but picky about its phonemes:
 //   input_ids int64 [1, T]  — misaki phoneme ids, id 0 pads both ends, T <= 512
 //   speed     float32 [1]
 //   waveform  float32 [1, N]
@@ -35,9 +37,18 @@ const STRONG = new Set(';,.!?—…:')
 const PASSIVE = new Set('“”"(){}[]·-–')
 const WORD_RE = /[\p{L}\p{N}_]+(?:['’-][\p{L}\p{N}_]+)*/uy
 
-/** Join a phonemize() result (array of IPA lines) into one misaki phoneme string. */
-export function toMisaki(ipa) {
+/**
+ * Join a phonemize() result (array of IPA lines) into one misaki phoneme string.
+ * `british` picks the en-GB letter set for the `bf_`/`bm_` voices Paradee 1.2 adds: eSpeak
+ * spells British vowels differently — GOAT as `əʊ`, LOT as `ɒ`, NURSE as `ɜː`, PRICE as `aɪ`,
+ * and the dark l as `ɫ` — so the American chain below would render GOAT as `əɔ` and keep the
+ * length marks. The British path is the state machine vendored from upstream `web/misaki.js`
+ * (`to_misaki(ps, british=True)`), letter for letter; the American path stays the E2M chain
+ * this project measured its word error rate with.
+ */
+export function toMisaki(ipa, british = false) {
   let ps = Array.isArray(ipa) ? ipa.filter((s) => s && String(s).trim()).join(' ') : String(ipa || '')
+  if (british) return toMisakiGb(ps)
   for (const [a, b] of E2M) ps = ps.split(a).join(b)
   ps = ps.replace(/(\S)̩/gu, 'ᵊ$1').replace(/̩/g, '')
   // misaki writes a syllabic l at the end of a word as ᵊl (naval -> nˈAvᵊl).
@@ -48,6 +59,95 @@ export function toMisaki(ipa) {
     .split('ɪə').join('iə').split('ː').join('')
   ps = ps.split('o').join('ɔ')
   return ps.split('ɾ').join('T').split('ʔ').join('t')
+}
+
+// ---- the British ("received pronunciation") letter set, for the bf_ and bm_ voices ----
+// eSpeak NG IPA -> misaki for en-GB: consonants first, then vowels. Multi-symbol vowel keys
+// are read longest-first by toMisakiGb(), the way upstream's to_misaki reads them, because
+// eSpeak writes PRICE as `aɪ` and the checked KIT as `ɪ;`, both of which start with a symbol
+// that means something else on its own.
+const GB_CONS = {
+  'ð': 'ð',          // U+0278 — the one letter the American chain reaches too
+  'ɡ': 'ɡ',          // hard g
+  'ɫ': 'l',          // dark l ("milk", "full"); upstream folds it before the lookup
+  'ɹ': 'ɹ',          // r
+  'ɻ': 'r',          // the American r that en-GB occasionally emits
+  'ɥ': 'h',          // y as a glide
+  'ɰ': 'ɰ',
+  'ʍ': 'w',          // voiceless w (the "wh" of "which")
+  'ʎ': 'j',          // PALATAL_LATERAL
+  'ɕ': 's',
+  'ʑ': 'z',
+}
+const GB_VOW = {
+  'ɑ': 'ɑ',
+  'ã;': 'ã', 'ɒ;': 'ɒ', 'ẽ;': 'ẽ', 'õ;': 'õ', 'ẽː;': 'ẽː', 'õː;': 'õː', 'ə̃;': 'ə̃', // nasal
+  'ã': 'ã', 'ɒ': 'ɒ', 'ẽ': 'ẽ', 'õ': 'õ', 'ẽː': 'ẽː', 'õː': 'õː', 'ə̃': 'ə̃',
+  'e': 'e', 'eː': 'eː',
+  'æ': 'æ', 'æː': 'æ',
+  'aː': 'aː', 'a': 'a',
+  'i': 'i', 'iː': 'iː',
+  'ɪ;': 'i', 'ɪ': 'i',                                   // KIT
+  'ɪr;': 'ɪr', 'ɪr': 'ɪr', 'ɜr;': 'ɜr', 'ɜr': 'ɜr',       // the NURSE letters
+  'ɔ': 'ɔ', 'ɔr;': 'ɔːɹ', 'ɔr': 'ɔːɹ',                     // NORTH / FORCE
+  'ɔi': 'ɔj', 'ɔɪ;': 'ɔj', 'ɔɪ': 'ɔj',
+  'ɔu': 'oʊ', 'ɔː': 'ɔ',                                 // GOAT; long OPEN_O falls back to open o
+  'ʊr;': 'ɔr', 'ʊr': 'ɔr',
+  'o': 'o', 'oː': 'oː',
+  'ʊ': 'ʊ', 'ʊə': 'ʊə',
+  'u': 'u', 'uː': 'uː', 'uːə': 'uːə',
+  'ə;': 'ə', 'ɜ;': 'ɜ', 'ə': 'ə', 'əː': 'əː', 'ɜː': 'ɜː',  // NURSE, checked
+  'ʌ': 'ɜ', 'ʌl;': 'ʌl', 'ʌl': 'ʌl',
+  'aɪ': 'aɪ', 'aɪə': 'aɪə', 'aʊ': 'aʊ', 'aʊə': 'aʊə',
+  'eə': 'eə', 'eəɹ': 'eəɹ', 'ɪə': 'ɪə', 'ɪəɹ': 'ɪəɹ',
+  'ʌr;': 'ɜr', 'ʌr': 'ɜr',
+  'iə;': 'iə', 'iə': 'iə',
+  'ɛ': 'ɛ', 'ɛr;': 'ɛːɹ', 'ɛr': 'ɛːɹ',
+}
+// Symbols that trail a stress mark without ending the syllable.
+const GB_PREP = new Set(['ː', 'j', 'w', 'r'])
+const GB_SEQ = Object.entries(GB_VOW).filter(([k]) => k.length > 1).sort((a, b) => b[0].length - a[0].length)
+
+/** eSpeak's en-GB IPA -> misaki letters, space separated (upstream to_misaki with british=True). */
+function toMisakiGb(ipa) {
+  ipa = String(ipa).replace(/ɫ/g, 'l').replace(/ /g, '.')
+  const at = (s) => {
+    for (const [k, v] of GB_SEQ) if (s.startsWith(k)) return [v, k.length]
+    return null
+  }
+  const out = []
+  let i = 0
+  while (i < ipa.length) {
+    const c = ipa[i]
+    if (c === '#') { const n = ipa.slice(i, i + 3); if (n === '###') { out.push(n); i += 3 } else out.push('#'); i++ }
+    else if (GB_CONS[c]) { out.push(GB_CONS[c]); i++ }
+    else if (c === 't' && ipa[i + 1] === 'ʃ') { out.push('tʃ'); i += 2 }
+    else if (c === 'd' && ipa[i + 1] === 'ʒ') { out.push('dʒ'); i += 2 }
+    else if (c === 'ˌ') { out.push('ˌ'); i++ }
+    else if (c === 'ˈ') {
+      let j = i + 1
+      while (j < ipa.length && GB_PREP.has(ipa[j])) j++   // skip ː j w r after the stress mark
+      const hit = at(ipa.slice(j))
+      if (hit) { out.push(hit[0]); i = j + hit[1] } else { out.push('ˈ'); i++ }
+    } else {
+      const hit = at(ipa.slice(i))
+      if (hit) { out.push(hit[0]); i += hit[1] } else { out.push(GB_VOW[c] || c); i++ }
+    }
+  }
+  return out.join(' ')
+}
+
+/**
+ * The phonemizer pins its language when it is built, so the accent is decided where the
+ * voice is: the Kokoro prefix convention (a = American, b = British) picks which G2P language
+ * feeds the phonemes. null for a prefix Paradee has no voice for, so callers fall back
+ * rather than mispronounce.
+ */
+export function g2pLang(voiceId) {
+  const id = String(voiceId || '')
+  if (id.startsWith('bf_') || id.startsWith('bm_')) return 'en-gb'
+  if (id.startsWith('af_') || id.startsWith('am_')) return 'en-us'
+  return null
 }
 
 /**
@@ -126,13 +226,14 @@ export function cutPhonemes(phonemes, max = MAX_PHONEMES) {
  * so playback progress can be mapped back to the page's words.
  */
 export async function planWindows(text, vocab, phonemize, lang = 'en-us') {
+  const british = lang === 'en-gb'   // the bf_/bm_ voices need the British letter set
   const windows = []
   const dropped = []
   let phonemes = 0
   for (const { segment, prosody, start, end } of splitProsody(text)) {
     let ps = ''
     try {
-      ps = toMisaki(await phonemize(segment, lang))
+      ps = toMisaki(await phonemize(segment, lang), british)
     } catch (e) {
       // A G2P hiccup on one segment must not kill the whole chunk.
       continue
@@ -193,6 +294,7 @@ export function words(text) {
  * whole-segment phonemes, so this may differ slightly and that is fine).
  */
 export async function wordWeights(list, phonemize, lang = 'en-us', text = '') {
+  const british = lang === 'en-gb'
   const cache = wordWeights.cache || (wordWeights.cache = new Map())
   const out = []
   for (const w of list) {
@@ -200,7 +302,7 @@ export async function wordWeights(list, phonemize, lang = 'en-us', text = '') {
     let n = cache.get(key)
     if (n === undefined) {
       try {
-        n = toMisaki(await phonemize(w.word || text.slice(w.start, w.end), lang)).replace(/\s/g, '').length
+        n = toMisaki(await phonemize(w.word || text.slice(w.start, w.end), lang), british).replace(/\s/g, '').length
       } catch (e) {
         n = 0
       }

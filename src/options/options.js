@@ -31,8 +31,8 @@ function bind() {
 }
 
 // ---- HQ voices ------------------------------------------------------------------
-// Two installs, one widget shape: Paradee (one voice, 9 MB, comfortably real time) and the
-// full Kokoro set (28 voices, ~95 MB, needs a fast machine).
+// Two installs, one widget shape: Paradee (four voices, 8.5 MB, comfortably real time) and
+// the full Kokoro set (28 voices, ~95 MB, needs a fast machine).
 const HQ = {
   paradee: { prefix: 'fast' },
   kokoro: { prefix: 'more', some: () => HL.kokoroVoices.INSTALL_DEFAULT, all: () => HL.kokoroVoices.VOICES.map((v) => v.id) },

@@ -11,7 +11,7 @@ Free, private, no account.
 
 [![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-0A7FFF?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/hearline-%E2%80%94-listen-to-any/nnmhcmenlidkfjnhnlmppfkppefeepkb)
 [![License: MIT](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.3.0-8b5cf6?style=for-the-badge)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.4.0-8b5cf6?style=for-the-badge)](CHANGELOG.md)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-f59e0b?style=for-the-badge&logo=googlechrome&logoColor=white)](#tech-stack)
 
 [Features](#features) · [Installation](#installation) · [Usage](#usage) · [HQ voices](#hq-voices) · [Privacy](#privacy) · [Development](#development)
@@ -29,7 +29,7 @@ Free, private, no account.
 >
 > What is new here, compared with [upstream Hearline](https://github.com/GroundworkTechnologies/Hearline):
 >
-> - **A fast offline HQ voice: [Paradee‑8M](https://huggingface.co/sahilmahendrakar/Paradee-8M-v1.0)** — 9 MB, one voice, about 4x faster than playback on a laptop CPU. Downloaded at install time, pinned to one Hugging Face revision and checked against a SHA‑256. No weights are committed to this repository.
+> - **A fast offline HQ voice: [Paradee‑8M v1.2](https://huggingface.co/sahilmahendrakar/Paradee-8M-v1.2)** — 8.5 MB carrying four of Kokoro's voices (Heart and Puck in American English, Isabella and Fable in British), about 4x faster than playback on a laptop CPU. Downloaded at install time, pinned to one Hugging Face revision and checked against a SHA‑256. No weights are committed to this repository.
 > - Kokoro became a separate opt‑in (“More voices”); installing one voice set no longer turns the other on.
 > - Speech is generated a sentence or two ahead of playback and the models' edge silence is trimmed, so a sentence boundary went from ~0.9 s of dead air to ~0.2 s.
 > - The word highlight follows the model's own character positions instead of an estimate from playback time.
@@ -52,7 +52,7 @@ Hearline is a free browser extension that reads a webpage aloud while highlighti
 | Read aloud | Read a full page or only the selected text, at 0.5x to 4x speed |
 | Word highlighting | A highlight follows the voice and the page scrolls along with it |
 | Voice picker | Choose any system voice, grouped by page language. Your choice is remembered per language |
-| HQ voices | Optional natural sounding voices that run offline: a 9 MB fast voice, or 28 voices from the larger model |
+| HQ voices | Optional natural sounding voices that run offline: an 8.5 MB fast voice in four speakers (US & UK), or 28 voices from the larger model |
 | Speed reading | Shows one word at a time with the focus letter marked, from 100 to 1000 words per minute |
 | Summary | An offline key-points summary. Click a sentence to jump to it, or have it read aloud |
 | Smart extraction | Skips menus, footers, cookie banners, code blocks, citations such as [1], URLs and emoji. Each rule is configurable |
@@ -110,9 +110,9 @@ HQ voices are optional and run entirely on your device — nothing you read is e
 
 | | The fast voice | More voices |
 |---|---|---|
-| Model | Paradee‑8M — [Kokoro's voice distilled into 8 million parameters](https://huggingface.co/sahilmahendrakar/Paradee-8M-v1.0) (Apache-2.0) | [Kokoro-82M](https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX) (Apache-2.0) |
-| Voices | One American female voice | 28 US and UK English voices |
-| Download | 9 MB, once | about 95 MB for six voices, more for all 28 |
+| Model | Paradee‑8M v1.2 — [four of Kokoro's voices distilled into 8 million parameters](https://huggingface.co/sahilmahendrakar/Paradee-8M-v1.2) (Apache-2.0) | [Kokoro-82M](https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX) (Apache-2.0) |
+| Voices | Heart and Puck (American), Isabella and Fable (British) | 28 US and UK English voices |
+| Download | 8.5 MB, once | about 95 MB for six voices, more for all 28 |
 | Speed on a typical laptop | around 4x faster than playback | often near or below playback speed |
 
 Both are English only; other languages use system voices. Hearline runs a short speed test after each install. If your computer cannot generate speech faster than it plays, that voice is not used by default — you can still pick it manually, and your system voice stays the default. Repeat the test any time from Settings.
@@ -120,6 +120,8 @@ Both are English only; other languages use system voices. Hearline runs a short 
 Speech is generated a sentence or two ahead of playback, and the silence the models leave at the end of every chunk is trimmed, so sentences follow each other in about 0.2 s rather than a full second.
 
 The fast voice also makes highlighting exact: the model reports where it is in the text, so the highlight follows the word being spoken rather than an estimate from the audio position.
+
+The fast voice takes text, not phonemes, so a grapheme‑to‑phoneme pass runs on your device next to the model: eSpeak converts the words and a small table rewrites them into the form the model was trained on — the American dictionary for Heart and Puck, the British one for Isabella and Fable. Nothing about that step touches the network.
 
 > **Note:** HQ voices run on the CPU. Hearline measures your machine when you install one — if it cannot generate speech faster than it plays, that voice is not used by default and a system voice is a better choice.
 
@@ -178,7 +180,7 @@ node test/e2e/kokoro.mjs   # installs the larger voice set and reads a page with
 npm run package            # create hearline-<version>.zip
 ```
 
-The HQ voice tests need the model files. `test/e2e/paradee.mjs` serves the pinned 9 MB model from `test/e2e/fixtures/`, and the speed-test install path is exercised too; the Kokoro test seeds its 92 MB model into the extension's cache from the same folder. Both also run against the real download when the fixture is absent.
+The HQ voice tests need the model files. `test/e2e/paradee.mjs` serves the pinned 8.5 MB model from `test/e2e/fixtures/`, and the speed-test install path is exercised too; the Kokoro test seeds its 92 MB model into the extension's cache from the same folder. Both also run against the real download when the fixture is absent.
 
 ### Project structure
 

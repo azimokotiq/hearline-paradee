@@ -8,7 +8,7 @@
 // offset, not a bare percentage.
 
 import { wavBlob } from '../shared/wav.js'
-import { makeTimingMap, speedFor } from '../shared/paradee-text.js'
+import { makeTimingMap, speedFor, g2pLang } from '../shared/paradee-text.js'
 
 const HOSTS = {
   paradee: { file: 'offscreen/paradee-worker.js', worker: null, pending: new Map() },
@@ -21,9 +21,19 @@ function engineSpeed(backend, rate) {
   return backend === 'paradee' ? speedFor(rate) : 1
 }
 
-function getWorker(backend) {
+function getWorker(backend, lang) {
   const h = HOSTS[backend]
   if (!h) throw new Error(`unknown engine: ${backend}`)
+  // The phonemizer is built in one language, so a Paradee worker speaks one accent. Asking
+  // for another one rebuilds it: a model reload (~1s), and every sentence already spoken
+  // stays in the audio cache because each voice owns its own cache entries.
+  if (h.worker && lang && h.lang && h.lang !== lang) {
+    for (const p of h.pending.values()) p.reject(new Error('worker-rebuilt-for-another-accent'))
+    h.pending.clear()
+    h.worker.terminate()
+    h.worker = null
+    h.warmed = false
+  }
   if (h.worker) return h.worker
   const w = new Worker(chrome.runtime.getURL(h.file), { type: 'module' })
   w.onmessage = (e) => {
@@ -42,25 +52,28 @@ function getWorker(backend) {
     h.worker = null
   }
   h.worker = w
+  h.lang = lang || null
   return w
 }
 
 function generate(backend, { text, voice, speed, threads }) {
   return new Promise((resolve, reject) => {
     const id = ++rpcId
+    const lang = backend === 'paradee' ? g2pLang(voice) : null
     HOSTS[backend].pending.set(id, { resolve, reject })
-    getWorker(backend).postMessage({ id, text, voice, speed, threads })
+    getWorker(backend, lang).postMessage({ id, text, voice, speed, threads, lang })
   })
 }
 
 /** Ask an engine's worker to load its model and speak one short line (off the critical path). */
-function warm(backend, { threads } = {}) {
+function warm(backend, { threads, voice } = {}) {
   const h = HOSTS[backend]
   if (!h || h.warmed) return
   h.warmed = true
   const id = ++rpcId
+  const lang = backend === 'paradee' ? g2pLang(voice) : null
   h.pending.set(id, { resolve: () => {}, reject: () => { h.warmed = false } })
-  getWorker(backend).postMessage({ id, warm: true, threads })
+  getWorker(backend, lang).postMessage({ id, warm: true, threads, voice, lang })
 }
 
 // One generation at a time per engine; stale prefetches are dropped before they run.
@@ -215,7 +228,7 @@ chrome.runtime.onConnect.addListener((port) => {
         break
       case 'warm':
         current.threads = msg.threads || 0
-        warm(msg.backend || 'paradee', { threads: msg.threads })
+        warm(msg.backend || 'paradee', { threads: msg.threads, voice: msg.voice })
         break
       case 'export':
         exportAudio(port, msg)

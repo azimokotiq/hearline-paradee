@@ -6,8 +6,16 @@
   // time in WASM where the bigger Kokoro build often is not.
   const ORDER = ['paradee', 'kokoro']
 
-  // Paradee is one voice: Kokoro's af_heart distilled into 8 MB. Nothing to choose.
-  const PARADEE_VOICES = [{ id: 'af_heart', name: 'Heart', lang: 'en-US', gender: 'F', engine: 'paradee' }]
+  // Paradee 1.2 carries four of Kokoro's voices in one 8.5 MB file, listed in the order the
+  // model's own config.json numbers them — that index is the `voice` input of the graph.
+  // Two speak American English, two British. `lang` is the accent their phonemes are made in,
+  // not the page language: Paradee reads English text of any accent.
+  const PARADEE_VOICES = [
+    { id: 'af_heart', name: 'Heart', lang: 'en-US', gender: 'F', engine: 'paradee' },
+    { id: 'bf_isabella', name: 'Isabella', lang: 'en-GB', gender: 'F', engine: 'paradee' },
+    { id: 'am_puck', name: 'Puck', lang: 'en-US', gender: 'M', engine: 'paradee' },
+    { id: 'bm_fable', name: 'Fable', lang: 'en-GB', gender: 'M', engine: 'paradee' },
+  ]
 
   const state = (settings, engine) => ((settings || {}).hq || {})[engine] || {}
 
@@ -24,6 +32,7 @@
   function supports(engine, lang) {
     const base = String(lang || '').toLowerCase().split('-')[0]
     if (base !== 'en') return false
+    // English in any accent: the two American voices cover en-US, the two British en-GB.
     if (engine === 'paradee') return true
     return HL.kokoroVoices ? HL.kokoroVoices.supports(lang) : base === 'en'
   }
@@ -45,6 +54,8 @@
   function pickDefault(settings, lang) {
     for (const engine of ORDER) {
       if (!usable(settings, engine, lang)) continue
+      // af_heart for every accent: Paradee's quality was measured with it, and switching
+      // accent mid-session costs the phonemizer a rebuild, so the default never asks for one.
       const id = engine === 'paradee' ? PARADEE_VOICES[0].id : (HL.kokoroVoices ? HL.kokoroVoices.defaultFor(lang) : null)
       if (id) return { engine, id }
     }

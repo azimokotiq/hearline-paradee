@@ -160,10 +160,10 @@
         }
       },
       /** Load the model and speak one word in the background, so the first real sentence is fast. */
-      async warm(engine, threads) {
+      async warm(engine, threads, voice) {
         try {
           const p = await connect()
-          p.postMessage({ t: 'warm', backend: engine, threads })
+          p.postMessage({ t: 'warm', backend: engine, threads, voice })
         } catch (e) { /* no offscreen yet: the first speak will pay for it */ }
       },
       pause() { send({ t: 'pause' }) },

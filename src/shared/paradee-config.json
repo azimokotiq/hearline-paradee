@@ -1,8 +1,14 @@
 {
   "model_type": "paradee",
-  "version": "1.0",
+  "version": "1.2",
   "sample_rate": 24000,
   "n_token": 178,
+  "voices": [
+    "af_heart",
+    "bf_isabella",
+    "am_puck",
+    "bm_fable"
+  ],
   "vocab": {
     ";": 1,
     ":": 2,
@@ -119,6 +125,5 @@
     "↘": 173,
     "ᵻ": 177
   },
-  "teacher": "hexgrad/Kokoro-82M",
-  "teacher_voice": "af_heart"
+  "teacher": "hexgrad/Kokoro-82M"
 }

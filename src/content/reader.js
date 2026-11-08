@@ -144,7 +144,8 @@
     function voiceLabel(rv) {
       if (rv.engine !== 'web') {
         const v = HL.hq.find(rv.engine, rv.id)
-        return v ? (rv.engine === 'paradee' ? `${v.name} (fast)` : v.name) : 'HQ'
+        // Four Paradee voices now, and the accent is the thing worth showing on the pill.
+        return v ? (rv.engine === 'paradee' ? `${v.name} (fast${v.lang === 'en-GB' ? ', UK' : ', US'})` : v.name) : 'HQ'
       }
       if (!rv.voice) return 'No voice'
       return rv.voice.name.replace(/^(Microsoft|Google)\s+/i, '').replace(/\s*\(.*?\)/g, '').replace(/\s+-\s+.*$/, '').replace(/\s+Online$/i, '') || 'Voice'
@@ -154,7 +155,7 @@
       const rv = resolveVoice()
       ui.setVoiceLabel(voiceLabel(rv))
       // Loading the model and speaking one word happens now, not inside the first sentence.
-      if (rv.engine !== 'web') hq.warm(rv.engine, hqThreads(rv.engine))
+      if (rv.engine !== 'web') hq.warm(rv.engine, hqThreads(rv.engine), rv.id)
     }
 
     // ---- highlighting ---------------------------------------------------------
@@ -460,7 +461,7 @@
       const kokoro = HL.kokoroVoices.VOICES.slice().sort((a, b) => (b.lang === pref) - (a.lang === pref))
       return {
         lang: s.lang,
-        // Paradee first: one voice, small download, comfortably real time on ordinary hardware.
+        // Paradee first: four voices in a small download, comfortably real time on ordinary hardware.
         paradeeSupported: HL.hq.supports('paradee', s.lang),
         paradeeInstalled: HL.hq.installed(s.settings, 'paradee') && !s.hqFailed.paradee,
         paradeeSlow: HL.hq.slow(s.settings, 'paradee'),

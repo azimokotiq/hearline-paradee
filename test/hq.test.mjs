@@ -9,6 +9,7 @@ require('../src/shared/kokoro-voices.js')
 const HL = globalThis.__HL
 const hq = require('../src/shared/hq.js')
 const settings = require('../src/shared/settings.js')
+const CONFIG = require('../src/shared/paradee-config.json')
 
 const WITH_PARADEE = { hq: { paradee: { installed: true, rtf: 0.3, threads: 0 }, kokoro: { installed: false, rtf: null } } }
 const WITH_BOTH = { hq: { paradee: { installed: true, rtf: 0.3, threads: 0 }, kokoro: { installed: true, rtf: 0.8, threads: 1 } } }
@@ -40,9 +41,19 @@ test('a saved choice survives only while its engine is still usable', () => {
   assert.equal(hq.pick(NOTHING, { saved: { engine: 'web', uri: 'x', name: 'Zira', lang: 'en-US' }, lang: 'en' }), null)
 })
 
-test('British pages get a British Kokoro voice but the one Paradee has', () => {
+test('Paradee offers four voices, in the order the model numbers its speakers', () => {
+  // British pages still get a British *Kokoro* voice by default: the Paradee default is
+  // af_heart, because changing accent mid-session costs its phonemizer a rebuild.
   assert.deepEqual(hq.pickDefault(ONLY_KOKORO, 'en-GB'), { engine: 'kokoro', id: 'bf_emma' })
-  assert.equal(hq.voices('paradee').length, 1, 'Paradee really has a single voice')
+  assert.deepEqual(hq.pickDefault(WITH_PARADEE, 'en-GB'), { engine: 'paradee', id: 'af_heart' })
+  const v = hq.voices('paradee')
+  assert.deepEqual(v.map((x) => x.id), ['af_heart', 'bf_isabella', 'am_puck', 'bm_fable'])
+  // paradee-core feeds this list position to the model's `voice` input, so the picker order
+  // and the model's own voice list have to say the same thing.
+  assert.deepEqual(v.map((x) => x.id), CONFIG.voices, 'the picker order is the model speaker order')
+  assert.deepEqual(v.map((x) => x.lang), ['en-US', 'en-GB', 'en-US', 'en-GB'], 'the picker shows the accent it speaks')
+  assert.deepEqual(v.map((x) => x.gender), ['F', 'F', 'M', 'M'])
+  assert.ok(v.every((x) => x.engine === 'paradee'))
   assert.ok(hq.voices('kokoro').length > 20)
 })
 

@@ -76,7 +76,7 @@ try {
   check('reader opened', res && res.ok, JSON.stringify(res))
 
   const label = await page.locator('#hearline-root >> .vlabel').textContent()
-  check('fast voice chosen by default', /Heart \(fast\)/.test(label), label)
+  check('fast voice chosen by default', /Heart \(fast, US\)/.test(label), label)
   await e2e.pressPlay(page) // opening shows the controls; speech starts on play
 
   // Record the highlighted words in order: the character offsets from the model must land
@@ -125,6 +125,23 @@ try {
     moved = parseInt(await page.locator('#hearline-root >> .count').textContent()) > parseInt(count)
   }
   check('keeps reading at 2x (model speed + playbackRate)', moved, `${Math.round((Date.now() - t1) / 1000)}s`)
+
+  // A British voice mid-session. The phonemizer is built in one accent, so asking for the
+  // other one rebuilds the Paradee worker: the reading must keep walking and the audio must
+  // keep arriving, and the words must stay British-spelled.
+  await page.locator('#hearline-root >> [data-a="voice"]').click()
+  await page.getByText('Isabella', { exact: false }).click()
+  const label2 = await page.locator('#hearline-root >> .vlabel').textContent()
+  check('the British voice is selectable', /Isabella \(fast, UK\)/.test(label2), label2)
+  // Picking a voice replays the current sentence with it, so the reading is running here.
+  const before = parseInt(await page.locator('#hearline-root >> .count').textContent())
+  let movedAccent = false
+  for (let i = 0; i < 40 && !movedAccent; i++) {
+    await page.waitForTimeout(1000)
+    movedAccent = parseInt(await page.locator('#hearline-root >> .count').textContent()) > before
+  }
+  check('keeps reading after switching accent (worker rebuilt)', movedAccent,
+    `count ${before} -> ${await page.locator('#hearline-root >> .count').textContent()}`)
 
   // Export the page as a wav (the menu item only exists when an HQ voice is in play). The
   // offscreen document starts the download, which playwright does not report as an event,

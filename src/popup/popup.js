@@ -49,7 +49,7 @@ async function main() {
   const current = HL.voices.pickVoice(web, { saved, lang })
   const on = (engine, id) => choice ? choice.engine === engine && choice.id === id : false
   if (paradeeInstalled && HL.hq.supports('paradee', lang)) {
-    group('Hearline HQ · fast (offline)', HL.hq.voices('paradee').map((v) => [`p:${v.id}`, `${v.name} (fast)`, on('paradee', v.id)]))
+    group('Hearline HQ · fast (offline)', HL.hq.voices('paradee').map((v) => [`p:${v.id}`, `${v.name} (fast, ${v.lang === 'en-GB' ? 'UK' : 'US'})`, on('paradee', v.id)]))
   }
   if (kokoroInstalled && HL.kokoroVoices.supports(lang)) {
     group('Hearline HQ · more voices (offline)', HL.kokoroVoices.VOICES.map((v) => [`k:${v.id}`, `${v.name} (${v.lang === 'en-GB' ? 'UK' : 'US'})`, on('kokoro', v.id)]))
